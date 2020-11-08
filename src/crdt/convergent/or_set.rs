@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 use smallvec::alloc::collections::{BTreeSet, BTreeMap};
 use std::rc::Rc;
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ORSet<T: Ord>(Kernel<T>);
 
 impl<T: Ord> ORSet<T> {

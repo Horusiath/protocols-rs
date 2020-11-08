@@ -9,7 +9,7 @@ use std::ops::{Deref, DerefMut};
 
 type IEntry<'a, K, V> = std::collections::btree_map::Entry<'a, K, V>;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ORMap<K: Ord, V> {
     kernel: Kernel<K>,
     entries: BTreeMap<Rc<K>, V>,

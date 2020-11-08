@@ -15,7 +15,7 @@ pub struct Kernel<T: Ord> {
     seen: DottedVersion,
     entries: BTreeMap<Rc<T>, SmallVec<[Dot;1]>>,
 
-    #[serde(skip_serializing, skip_deserializing, default)]
+    #[serde(skip_serializing, skip_deserializing, default = "Option::default")]
     delta: Option<Delta<T>>,
 }
 
@@ -119,6 +119,7 @@ impl<T: Ord> Kernel<T> {
         changed
     }
 }
+
 
 pub(crate) enum MergeOp<'a, T> {
     Updated(Rc<T>),

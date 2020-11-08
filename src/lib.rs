@@ -11,6 +11,7 @@ pub mod mtime;
 pub mod hlc;
 pub mod dotted_version;
 pub mod paxos;
+pub mod membership;
 
 pub type Result<T> = anyhow::Result<T>;
 

@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 use std::rc::Rc;
 
 /// Multi-value register.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MVRegister<T: Ord>(Kernel<T>);
 
 impl<T: Ord> MVRegister<T> {
