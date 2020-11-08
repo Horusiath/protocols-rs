@@ -49,7 +49,7 @@ pub trait DeltaConvergent {
 
 /// Trait used to materialize a CRDT value into a user-facing state, stripped of CRDT-specific
 /// metadata.
-pub trait Materialize {
+pub trait Materialize<'m> {
     type Value;
-    fn value(&self) -> Self::Value;
+    fn value(&'m self) -> Self::Value;
 }

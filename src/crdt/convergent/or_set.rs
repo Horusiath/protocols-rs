@@ -29,10 +29,10 @@ impl<T: Ord> Default for ORSet<T> {
     }
 }
 
-impl<'mat, T: Ord> Materialize for &'mat ORSet<T> where T: Ord {
-    type Value = BTreeSet<&'mat T>;
+impl<'m, T: Ord + 'm> Materialize<'m> for ORSet<T> where T: Ord {
+    type Value = BTreeSet<&'m T>;
 
-    fn value(&self) -> Self::Value {
+    fn value(&'m self) -> Self::Value {
         let kernel = &self.0;
         kernel.value().collect()
     }
@@ -69,12 +69,11 @@ mod test {
     const B: ReplicaId = 2;
     const C: ReplicaId = 3;
 
-
     #[test]
     fn orset_identity() {
         let a: ORSet<u32> = ORSet::default();
         assert!(a.is_empty());
-        assert_eq!((&a).value(), BTreeSet::new());
+        assert_eq!(a.value(), BTreeSet::new());
     }
 
     #[test]
@@ -86,9 +85,9 @@ mod test {
 
         let mut expected = BTreeSet::new();
         expected.insert(&"hello");
-        assert_eq!((&a).value(), expected);
+        assert_eq!(a.value(), expected);
         assert!(!a.merge(&b));
-        assert_eq!((&a).value(), expected);
+        assert_eq!(a.value(), expected);
     }
 
     #[test]
@@ -112,12 +111,12 @@ mod test {
         // (a + b) + c
         assert!(a.merge(&b));
         assert!(a.merge(&c));
-        assert_eq!((&a).value(), expected);
+        assert_eq!(a.value(), expected);
 
         // a + (b + c)
         assert!(b2.merge(&c2));
         assert!(a2.merge(&b2));
-        assert_eq!((&a2).value(), expected);
+        assert_eq!(a.value(), expected);
 
         assert!(!a.merge(&a2));
     }
@@ -138,11 +137,11 @@ mod test {
 
         // a + b
         assert!(a.merge(&b));
-        assert_eq!((&a).value(), expected);
+        assert_eq!(a.value(), expected);
 
         // b + a
         assert!(b2.merge(&a2));
-        assert_eq!((&b2).value(), expected);
+        assert_eq!(a.value(), expected);
 
         assert!(!a.merge(&b2));
     }
@@ -164,6 +163,6 @@ mod test {
         expected.insert(&"A");
 
         assert!(a.merge(&b));
-        assert_eq!((&a).value(), expected);
+        assert_eq!(a.value(), expected);
     }
 }

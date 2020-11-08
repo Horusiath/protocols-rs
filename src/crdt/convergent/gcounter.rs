@@ -53,10 +53,10 @@ impl DeltaConvergent for GCounter {
     }
 }
 
-impl Materialize for GCounter {
+impl<'m> Materialize<'m> for GCounter {
     type Value = u64;
 
-    fn value(&self) -> Self::Value {
+    fn value(&'m self) -> Self::Value {
         self.0.0.iter().map(|(_,v)| *v).sum()
     }
 }

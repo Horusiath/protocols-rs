@@ -5,6 +5,7 @@ use crate::hlc::HybridTime;
 use serde::export::PhantomData;
 use crate::Clock;
 use std::cmp::Ordering;
+use std::borrow::Borrow;
 
 /// Last write wins register.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -81,11 +82,11 @@ impl<T: Clone, C> DeltaConvergent for LWWRegister<T, C> {
     }
 }
 
-impl<'mat, T, C> Materialize for &'mat LWWRegister<T, C> {
-    type Value = Option<&'mat T>;
+impl<'m, T: 'm, C> Materialize<'m> for LWWRegister<T, C> {
+    type Value = Option<&'m T>;
 
-    fn value(&self) -> Self::Value {
-        self.0.as_ref().map(|v| & v.value)
+    fn value(&'m self) -> Self::Value {
+        self.0.as_ref().map(|v| &v.value)
     }
 }
 
@@ -122,7 +123,7 @@ impl<T: Clone> Convergent for Delta<T> {
 
 #[cfg(test)]
 mod test {
-    use crate::crdt::convergent::{Materialize, Convergent, DeltaConvergent};
+    use crate::crdt::convergent::{Materialize, Convergent};
     use crate::vtime::ReplicaId;
     use crate::hlc::HybridTime;
     use crate::crdt::convergent::lww_register::LWWRegister;
@@ -133,7 +134,7 @@ mod test {
 
     impl Convergent for &str {
         fn merge(&mut self, other: &Self) -> bool {
-            if (self == other) {
+            if self == other {
                 false
             } else {
                 panic!("merging different values")
@@ -145,7 +146,7 @@ mod test {
     fn lww_register_identity() {
         let a: LWWRegister<u32, HybridTime> = LWWRegister::with_hybrid_clock();
         assert!(a.is_empty());
-        assert_eq!((&a).value(), None);
+        assert_eq!(a.value(), None);
     }
 
     #[test]
@@ -155,9 +156,9 @@ mod test {
 
         let b = a.clone();
 
-        assert_eq!((&a).value(), Some(&"hello"));
+        assert_eq!(a.value(), Some(&"hello"));
         assert!(!a.merge(&b));
-        assert_eq!((&a).value(), Some(&"hello"));
+        assert_eq!(a.value(), Some(&"hello"));
     }
 
     #[test]
@@ -176,12 +177,12 @@ mod test {
         // (a + b) + c
         assert!(a.merge(&b));
         assert!(a.merge(&c));
-        assert_eq!((&a).value(), Some(&"C"));
+        assert_eq!(a.value(), Some(&"C"));
 
         // a + (b + c)
         assert!(b2.merge(&c2));
         assert!(a2.merge(&b2));
-        assert_eq!((&a2).value(), Some(&"C"));
+        assert_eq!(a2.value(), Some(&"C"));
 
         assert!(!a.merge(&a2));
     }
@@ -198,11 +199,11 @@ mod test {
 
         // a + b
         assert!(a.merge(&b));
-        assert_eq!((&a).value(), Some(&"B"));
+        assert_eq!(a.value(), Some(&"B"));
 
         // b + a
         assert!(!b2.merge(&a2));
-        assert_eq!((&b2).value(), Some(&"B"));
+        assert_eq!(b2.value(), Some(&"B"));
 
         assert!(!a.merge(&b2));
     }

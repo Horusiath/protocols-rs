@@ -15,7 +15,7 @@ pub struct Kernel<T: Ord> {
     seen: DottedVersion,
     entries: BTreeMap<Rc<T>, SmallVec<[Dot;1]>>,
 
-    #[serde(skip_serializing, skip_deserializing)]
+    #[serde(skip_serializing, skip_deserializing, default)]
     delta: Option<Delta<T>>,
 }
 
@@ -53,7 +53,39 @@ impl<T: Ord> Kernel<T> {
 
     pub fn is_empty(&self) -> bool { self.entries.is_empty() }
 
-    pub(crate) fn merge_with<F>(&mut self, other: &Delta<T>, mut f: F) -> bool where F:FnMut(DeltaOp<'_, T>) -> () {
+
+    pub(crate) fn merge_with<F>(&mut self, other: &Self, mut f: F) -> bool where F:FnMut(MergeOp<'_, T>) -> () {
+        let mut changed = false;
+
+        // insert all values that were not "seen"
+        for (value, other_dots) in other.entries.iter() {
+            let e = self.entries.entry(value.clone()).or_default();
+            for dot in other_dots {
+                if !e.contains(dot) {
+                    e.push(*dot);
+                    changed = true;
+
+                    f(MergeOp::Updated(value.clone()));
+                }
+            }
+        }
+
+        // remove all values that were seen but are not present in other
+        self.entries.drain_filter(|value, dots| {
+            if dots.iter().any(|d| other.seen.contains(d)) && !other.entries.contains_key(value) {
+                changed = true;
+                f(MergeOp::Removed(value));
+                true
+            } else {
+                false
+            }
+        });
+
+        changed = self.seen.merge(&other.seen) || changed;
+        changed
+    }
+
+    pub(crate) fn merge_with_delta<F>(&mut self, other: &Delta<T>, mut f: F) -> bool where F:FnMut(MergeOp<'_, T>) -> () {
         let mut changed = false;
         for (value, dots) in other.inserts.iter() {
             let unseen = dots.iter().any(|dot| !self.seen.contains(dot));
@@ -66,14 +98,14 @@ impl<T: Ord> Kernel<T> {
                     }
                 }
 
-                f(DeltaOp::Updated(value.clone()))
+                f(MergeOp::Updated(value.clone()))
             }
         }
         for dot in other.removals.iter() {
             self.entries.drain_filter(|value, dots| {
                 let found = dots.iter().any(|d| d == dot);
                 if found && dots.len() == 1 {
-                    f(DeltaOp::Removed(value.deref()));
+                    f(MergeOp::Removed(value.deref()));
                     true // if dot to remove is the only dot for that entry, remove entry
                 } else if found {
                     // remove that dot from the entry
@@ -88,7 +120,7 @@ impl<T: Ord> Kernel<T> {
     }
 }
 
-pub(crate) enum DeltaOp<'a, T> {
+pub(crate) enum MergeOp<'a, T> {
     Updated(Rc<T>),
     Removed(&'a T),
 }
@@ -105,31 +137,7 @@ impl<T: Ord> Default for Kernel<T> {
 
 impl<T: Ord> Convergent for Kernel<T> {
     fn merge(&mut self, other: &Self) -> bool {
-        let mut changed = false;
-
-        // insert all values that were not "seen"
-        for (value, other_dots) in other.entries.iter() {
-            let e = self.entries.entry(value.clone()).or_default();
-            for dot in other_dots {
-                if !e.contains(dot) {
-                    e.push(*dot);
-                    changed = true;
-                }
-            }
-        }
-
-        // remove all values that were seen but are not present in other
-        self.entries.drain_filter(|value, dots| {
-            if dots.iter().any(|d| other.seen.contains(d)) && !other.entries.contains_key(value) {
-                changed = true;
-                true
-            } else {
-                false
-            }
-        });
-
-        changed = self.seen.merge(&other.seen) || changed;
-        changed
+        self.merge_with(other, |_| {})
     }
 }
 
@@ -141,15 +149,15 @@ impl<T: Ord> DeltaConvergent for Kernel<T> {
     }
 
     fn merge_delta(&mut self, other: &Self::Delta) -> bool {
-        self.merge_with(other, |_|{})
+        self.merge_with_delta(other, |_|{})
     }
 }
 
 
-impl<'mat, T: Ord> Materialize for &'mat Kernel<T> {
-    type Value = Value<'mat, T>;
+impl<'m, T: Ord + 'm> Materialize<'m> for Kernel<T> {
+    type Value = Value<'m, T>;
 
-    fn value(&self) -> Self::Value {
+    fn value(&'m self) -> Self::Value {
         Value(self.entries.keys())
     }
 }
@@ -208,7 +216,20 @@ impl<T: Ord> Delta<T> {
     }
 
     pub fn has_inserts(&self) -> bool { !self.inserts.is_empty() }
+
     pub fn has_removals(&self) -> bool { !self.removals.is_empty() }
+
+    pub fn keys(&self) -> DeltaKeys<'_, T> { DeltaKeys(self.inserts.keys()) }
+}
+
+pub struct DeltaKeys<'a, T>(std::collections::btree_map::Keys<'a, Rc<T>, SmallVec<[Dot;1]>>);
+
+impl<'a, T> Iterator for DeltaKeys<'a, T> {
+    type Item = Rc<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().cloned()
+    }
 }
 
 impl<T: Ord> Default for Delta<T> {

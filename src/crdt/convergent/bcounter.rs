@@ -119,10 +119,10 @@ impl DeltaConvergent for BCounter {
     }
 }
 
-impl Materialize for BCounter {
+impl<'m> Materialize<'m> for BCounter {
     type Value = u64;
 
-    fn value(&self) -> Self::Value {
+    fn value(&'m self) -> Self::Value {
         self.counter.value() as u64
     }
 }

@@ -24,10 +24,10 @@ impl<T: Ord> Default for MVRegister<T> {
     }
 }
 
-impl<'mat, T: Ord> Materialize for &'mat MVRegister<T> {
-    type Value = Value<'mat, T>;
+impl<'m, T: Ord + 'm> Materialize<'m> for MVRegister<T> {
+    type Value = Value<'m, T>;
 
-    fn value(&self) -> Self::Value {
+    fn value(&'m self) -> Self::Value {
         let kernel = &self.0;
         kernel.value()
     }
@@ -68,7 +68,7 @@ mod test {
         let a: MVRegister<u32> = MVRegister::default();
         let expected: Vec<&u32> = Vec::new();
         assert!(a.is_empty());
-        assert_eq!((&a).value().collect::<Vec<&u32>>(), expected);
+        assert_eq!(a.value().collect::<Vec<&u32>>(), expected);
     }
 
     #[test]
@@ -78,9 +78,9 @@ mod test {
 
         let b = a.clone();
 
-        assert_eq!((&a).value().collect::<Vec<&&str>>(), vec![&"hello"]);
+        assert_eq!(a.value().collect::<Vec<&&str>>(), vec![&"hello"]);
         assert!(!a.merge(&b));
-        assert_eq!((&a).value().collect::<Vec<&&str>>(), vec![&"hello"]);
+        assert_eq!(a.value().collect::<Vec<&&str>>(), vec![&"hello"]);
     }
 
     #[test]
@@ -99,12 +99,12 @@ mod test {
         // (a + b) + c
         assert!(a.merge(&b));
         assert!(a.merge(&c));
-        assert_eq!((&a).value().collect::<Vec<&&str>>(), vec![&"A", &"B", &"C"]);
+        assert_eq!(a.value().collect::<Vec<&&str>>(), vec![&"A", &"B", &"C"]);
 
         // a + (b + c)
         assert!(b2.merge(&c2));
         assert!(a2.merge(&b2));
-        assert_eq!((&a2).value().collect::<Vec<&&str>>(), vec![&"A", &"B", &"C"]);
+        assert_eq!(a2.value().collect::<Vec<&&str>>(), vec![&"A", &"B", &"C"]);
 
         assert!(!a.merge(&a2));
     }
@@ -121,11 +121,11 @@ mod test {
 
         // a + b
         assert!(a.merge(&b));
-        assert_eq!((&a).value().collect::<Vec<&&str>>(), vec![&"A", &"B"]);
+        assert_eq!(a.value().collect::<Vec<&&str>>(), vec![&"A", &"B"]);
 
         // b + a
         assert!(b2.merge(&a2));
-        assert_eq!((&b2).value().collect::<Vec<&&str>>(), vec![&"A", &"B"]);
+        assert_eq!(b2.value().collect::<Vec<&&str>>(), vec![&"A", &"B"]);
 
         assert!(!a.merge(&b2));
     }
@@ -138,13 +138,13 @@ mod test {
         b.assign(B, "B");
 
         assert!(a.merge(&b));
-        assert_eq!((&a).value().collect::<Vec<&&str>>(), vec![&"A", &"B"]);
+        assert_eq!(a.value().collect::<Vec<&&str>>(), vec![&"A", &"B"]);
 
         a.assign(A, "C");
-        assert_eq!((&a).value().collect::<Vec<&&str>>(), vec![&"C"]);
+        assert_eq!(a.value().collect::<Vec<&&str>>(), vec![&"C"]);
 
         assert!(b.merge(&a));
-        assert_eq!((&a).value().collect::<Vec<&&str>>(), vec![&"C"]);
+        assert_eq!(a.value().collect::<Vec<&&str>>(), vec![&"C"]);
     }
 
     #[test]
@@ -157,7 +157,7 @@ mod test {
         a.assign(A, "A2");
         assert!(b.merge_delta(&a.delta().expect("delta: A (second)")));
 
-        assert_eq!((&a).value().collect::<Vec<&&str>>(), vec![&"A2"]);
-        assert_eq!((&b).value().collect::<Vec<&&str>>(), vec![&"A2"]);
+        assert_eq!(a.value().collect::<Vec<&&str>>(), vec![&"A2"]);
+        assert_eq!(b.value().collect::<Vec<&&str>>(), vec![&"A2"]);
     }
 }

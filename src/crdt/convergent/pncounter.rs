@@ -67,10 +67,10 @@ impl DeltaConvergent for PNCounter {
     }
 }
 
-impl Materialize for PNCounter {
+impl<'m> Materialize<'m> for PNCounter {
     type Value = i64;
 
-    fn value(&self) -> Self::Value {
+    fn value(&'m self) -> Self::Value {
         (self.inc.value() as i64) - (self.dec.value() as i64)
     }
 }
