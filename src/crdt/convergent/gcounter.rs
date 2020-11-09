@@ -1,6 +1,7 @@
-use crate::vtime::{ReplicaId, VTime};
+use crate::vtime::VTime;
 use crate::crdt::convergent::{Convergent, DeltaConvergent, Materialize};
 use serde::{Serialize,Deserialize};
+use crate::PID;
 
 /// A grow-only counter. It's a distributed, eventually consistent counter, that can be incremented
 /// concurrently on many replicas. It doesn't support decrement operations (see: `PNCounter`).
@@ -10,7 +11,7 @@ pub struct GCounter(Delta, #[serde(skip_serializing, skip_deserializing)]Option<
 impl GCounter {
 
     /// Increments current counter by a given delta.
-    pub fn add(&mut self, id: ReplicaId, delta: u64) {
+    pub fn add(&mut self, id: PID, delta: u64) {
         let dot = self.0.0.inc_by(id, delta);
 
         let mut d = self.1.take().unwrap_or_else(|| Delta::default());
@@ -19,7 +20,7 @@ impl GCounter {
     }
 
     /// Returns partial counter value at given replica `id`.
-    pub fn get(&self, id: &ReplicaId) -> u64 {
+    pub fn get(&self, id: &PID) -> u64 {
         self.0.0.get(&id)
     }
 
@@ -81,12 +82,12 @@ impl Convergent for Delta {
 mod test {
     use crate::crdt::convergent::bcounter::BCounter;
     use crate::crdt::convergent::{Materialize, Convergent, DeltaConvergent};
-    use crate::vtime::ReplicaId;
     use crate::crdt::convergent::gcounter::GCounter;
+    use crate::PID;
 
-    const A: ReplicaId = 1;
-    const B: ReplicaId = 2;
-    const C: ReplicaId = 3;
+    const A: PID = 1;
+    const B: PID = 2;
+    const C: PID = 3;
 
     #[test]
     fn gcounter_identity() {

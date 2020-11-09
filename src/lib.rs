@@ -15,6 +15,9 @@ pub mod membership;
 
 pub type Result<T> = anyhow::Result<T>;
 
+/// Peer (or replica) identifier;
+pub type PID = u32;
+
 pub trait Clock {
     fn now() -> Self;
 }

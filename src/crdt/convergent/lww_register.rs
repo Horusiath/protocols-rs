@@ -1,9 +1,8 @@
-use crate::vtime::ReplicaId;
 use crate::crdt::convergent::{Convergent, Materialize, DeltaConvergent};
 use serde::{Serialize, Deserialize};
 use crate::hlc::HybridTime;
 use serde::export::PhantomData;
-use crate::Clock;
+use crate::{Clock, PID};
 use std::cmp::Ordering;
 use std::borrow::Borrow;
 
@@ -22,7 +21,7 @@ impl<T, C> LWWRegister<T, C> where C: Clock {
 
     pub fn is_empty(&self) -> bool { self.0.is_none() }
 
-    pub fn assign(&mut self, id: ReplicaId, value: T) {
+    pub fn assign(&mut self, id: PID, value: T) {
         let now = HybridTime::now();
         if let Some(e) = self.0.as_mut() {
             match e.timestamp.cmp(&now) {
@@ -94,7 +93,7 @@ impl<'m, T: 'm, C> Materialize<'m> for LWWRegister<T, C> {
 pub struct Delta<T> {
     value: T,
     timestamp: HybridTime,
-    replica_id: ReplicaId,
+    replica_id: PID,
 }
 
 impl<T: Clone> Convergent for Delta<T> {
@@ -124,13 +123,13 @@ impl<T: Clone> Convergent for Delta<T> {
 #[cfg(test)]
 mod test {
     use crate::crdt::convergent::{Materialize, Convergent};
-    use crate::vtime::ReplicaId;
     use crate::hlc::HybridTime;
     use crate::crdt::convergent::lww_register::LWWRegister;
+    use crate::PID;
 
-    const A: ReplicaId = 1;
-    const B: ReplicaId = 2;
-    const C: ReplicaId = 3;
+    const A: PID = 1;
+    const B: PID = 2;
+    const C: PID = 3;
 
     impl Convergent for &str {
         fn merge(&mut self, other: &Self) -> bool {

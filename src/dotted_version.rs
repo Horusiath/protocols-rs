@@ -1,7 +1,8 @@
-use crate::vtime::{VTime, Dot, ReplicaId};
+use crate::vtime::{VTime, Dot};
 use smallvec::alloc::collections::BTreeSet;
 use crate::crdt::convergent::Convergent;
 use serde::{Serialize, Deserialize};
+use crate::PID;
 
 /// A dotted version vector, that can be used to represent not only operations in a continuous
 /// logical timeline, but also to represent detached events.
@@ -11,7 +12,7 @@ pub struct DottedVersion(VTime, BTreeSet<Dot>);
 impl DottedVersion {
     fn compress(&mut self) {
         let vtime = self.1.iter().fold(&mut self.0, |acc, dot| {
-            let id = dot.id();
+            let id = dot.pid();
             let v = acc.get(&id);
             if dot.seq_nr() == v + 1 {
                 acc.inc(id);
@@ -29,7 +30,7 @@ impl DottedVersion {
         self.0.contains(dot) || self.1.contains(dot)
     }
 
-    pub fn inc_by(&mut self, key: ReplicaId, delta: u64) -> Dot {
+    pub fn inc_by(&mut self, key: PID, delta: u64) -> Dot {
         // we don't need to update dot cloud (self.1) as this function should only be called for
         // key that represent current replica and that entry is always up-to-date and should never
         // contain detached dots
@@ -37,7 +38,7 @@ impl DottedVersion {
     }
 
     #[inline]
-    pub fn inc(&mut self, key: ReplicaId) -> Dot { self.inc_by(key, 1) }
+    pub fn inc(&mut self, key: PID) -> Dot { self.inc_by(key, 1) }
 }
 
 impl Default for DottedVersion {

@@ -1,4 +1,4 @@
-use crate::vtime::ReplicaId;
+use crate::PID;
 use crate::crdt::convergent::{Convergent, DeltaConvergent, Materialize};
 use serde::{Serialize,Deserialize};
 use smallvec::alloc::collections::BTreeMap;
@@ -13,14 +13,14 @@ use crate::crdt::convergent::pncounter;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BCounter {
     counter: PNCounter,
-    transfers: BTreeMap<(ReplicaId, ReplicaId), u64>,
+    transfers: BTreeMap<(PID, PID), u64>,
 
     #[serde(skip_serializing, skip_deserializing)]
-    transfers_delta: Option<BTreeMap<(ReplicaId, ReplicaId), u64>>,
+    transfers_delta: Option<BTreeMap<(PID, PID), u64>>,
 }
 
 impl BCounter {
-    pub fn add(&mut self, id: ReplicaId, delta: i64) -> crate::Result<()> {
+    pub fn add(&mut self, id: PID, delta: i64) -> crate::Result<()> {
         if delta > 0 {
             Ok(self.counter.add(id, delta))
         } else if delta < 0 {
@@ -35,7 +35,7 @@ impl BCounter {
         }
     }
 
-    pub fn transfer(&mut self, from: ReplicaId, to: ReplicaId, quota: u64) -> crate::Result<()> {
+    pub fn transfer(&mut self, from: PID, to: PID, quota: u64) -> crate::Result<()> {
         let available = self.quota(&from);
         if quota < available {
             let e = self.transfers.entry((from, to)).or_default();
@@ -53,7 +53,7 @@ impl BCounter {
         }
     }
 
-    pub fn quota(&self, id: &ReplicaId) -> u64 {
+    pub fn quota(&self, id: &PID) -> u64 {
         self.transfers.iter().fold(self.counter.get(id) as u64, |acc, ((src, dst), v)| {
             if src == id { acc - v }
             else if dst == id { acc + v }
@@ -130,7 +130,7 @@ impl<'m> Materialize<'m> for BCounter {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Delta {
     counter: Option<pncounter::Delta>,
-    transfers: Option<BTreeMap<(ReplicaId, ReplicaId), u64>>,
+    transfers: Option<BTreeMap<(PID, PID), u64>>,
 }
 
 impl Default for Delta {
@@ -169,11 +169,11 @@ impl Convergent for Delta {
 mod test {
     use crate::crdt::convergent::bcounter::BCounter;
     use crate::crdt::convergent::{Materialize, Convergent, DeltaConvergent};
-    use crate::vtime::ReplicaId;
+    use crate::PID;
 
-    const A: ReplicaId = 1;
-    const B: ReplicaId = 2;
-    const C: ReplicaId = 3;
+    const A: PID = 1;
+    const B: PID = 2;
+    const C: PID = 3;
 
     #[test]
     fn bcounter_identity() {

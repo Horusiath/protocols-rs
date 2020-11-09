@@ -1,18 +1,19 @@
 use crate::hlc::HybridTime;
-use crate::vtime::{VTime, ReplicaId};
+use crate::vtime::VTime;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use crate::PID;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Versioned<T> {
-    pub origin: ReplicaId,
+    pub origin: PID,
     pub sys_ts: HybridTime,
     pub vec_ts: VTime,
     pub data: T
 }
 
 impl<T> Versioned<T> {
-    pub fn new(origin: ReplicaId, sys_ts: HybridTime, vec_ts: VTime, data: T) -> Self {
+    pub fn new(origin: PID, sys_ts: HybridTime, vec_ts: VTime, data: T) -> Self {
         Versioned {
             origin,
             sys_ts,
@@ -54,7 +55,7 @@ impl<T> Eq for Versioned<T> {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Event<T> {
-    pub origin: ReplicaId,
+    pub origin: PID,
     pub origin_seq_nr: u64,
     pub local_seq_nr: u64,
     pub sys_ts: HybridTime,
@@ -63,7 +64,7 @@ pub struct Event<T> {
 }
 
 impl<T> Event<T> {
-    pub fn new(origin: ReplicaId, origin_seq_nr: u64, local_seq_nr: u64, sys_ts: HybridTime, vec_ts: VTime, data: T) -> Self {
+    pub fn new(origin: PID, origin_seq_nr: u64, local_seq_nr: u64, sys_ts: HybridTime, vec_ts: VTime, data: T) -> Self {
         Event {
             origin,
             origin_seq_nr,

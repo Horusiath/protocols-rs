@@ -1,5 +1,7 @@
 use serde::{Serialize, Deserialize};
 use crate::Result;
+use std::collections::HashSet;
+use crate::raft::PeerId;
 
 pub enum State {
     Leader(LeaderState),
@@ -8,7 +10,6 @@ pub enum State {
 }
 
 pub struct LeaderState {
-
 }
 
 impl LeaderState {

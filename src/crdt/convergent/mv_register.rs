@@ -1,8 +1,8 @@
-use crate::vtime::ReplicaId;
 use crate::crdt::convergent::{Convergent, Materialize, DeltaConvergent, kernel};
 use crate::crdt::convergent::kernel::{Kernel, Value};
 use serde::{Serialize, Deserialize};
 use std::rc::Rc;
+use crate::PID;
 
 /// Multi-value register.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -12,7 +12,7 @@ impl<T: Ord> MVRegister<T> {
 
     pub fn is_empty(&self) -> bool { self.0.is_empty() }
 
-    pub fn assign(&mut self, id: ReplicaId, value: T) {
+    pub fn assign(&mut self, id: PID, value: T) {
         self.0.clear();
         self.0.insert(id, Rc::new(value));
     }
@@ -57,11 +57,11 @@ pub type Delta<T> = kernel::Delta<T>;
 mod test {
     use crate::crdt::convergent::mv_register::MVRegister;
     use crate::crdt::convergent::{Materialize, Convergent, DeltaConvergent};
-    use crate::vtime::ReplicaId;
+    use crate::PID;
 
-    const A: ReplicaId = 1;
-    const B: ReplicaId = 2;
-    const C: ReplicaId = 3;
+    const A: PID = 1;
+    const B: PID = 2;
+    const C: PID = 3;
 
     #[test]
     fn mv_register_identity() {

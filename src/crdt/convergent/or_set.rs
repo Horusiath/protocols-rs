@@ -1,16 +1,17 @@
 use crate::crdt::convergent::kernel::{Kernel};
 use serde::{Serialize, Deserialize};
 use crate::crdt::convergent::{Materialize, Convergent, DeltaConvergent, kernel};
-use crate::vtime::{ReplicaId, Dot};
+use crate::vtime::Dot;
 use smallvec::SmallVec;
 use smallvec::alloc::collections::{BTreeSet, BTreeMap};
 use std::rc::Rc;
+use crate::PID;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ORSet<T: Ord>(Kernel<T>);
 
 impl<T: Ord> ORSet<T> {
-    pub fn insert(&mut self, id: ReplicaId, value: T) {
+    pub fn insert(&mut self, id: PID, value: T) {
         self.0.insert(id, Rc::new(value));
     }
 
@@ -62,12 +63,12 @@ pub type Delta<T> = kernel::Delta<T>;
 mod test {
     use crate::crdt::convergent::or_set::ORSet;
     use crate::crdt::convergent::{Materialize, Convergent, DeltaConvergent};
-    use crate::vtime::ReplicaId;
     use smallvec::alloc::collections::BTreeSet;
+    use crate::PID;
 
-    const A: ReplicaId = 1;
-    const B: ReplicaId = 2;
-    const C: ReplicaId = 3;
+    const A: PID = 1;
+    const B: PID = 2;
+    const C: PID = 3;
 
     #[test]
     fn orset_identity() {

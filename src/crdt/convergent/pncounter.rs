@@ -1,8 +1,8 @@
 use crate::crdt::convergent::gcounter;
 use crate::crdt::convergent::gcounter::{GCounter};
 use crate::crdt::convergent::{DeltaConvergent, Convergent, Materialize};
-use crate::vtime::ReplicaId;
 use serde::{Serialize,Deserialize};
+use crate::PID;
 
 /// A positive-negative counter. It's a distributed eventually consistent counter, which value can
 /// be concurrently incremented or decremented over multiple replicas.
@@ -13,7 +13,7 @@ pub struct PNCounter {
 }
 
 impl PNCounter {
-    pub fn add(&mut self, id: ReplicaId, value: i64) {
+    pub fn add(&mut self, id: PID, value: i64) {
         if value > 0 {
             self.inc.add(id, value as u64)
         } else if value < 0 {
@@ -22,7 +22,7 @@ impl PNCounter {
     }
 
     /// Returns partial counter value at given replica `id`.
-    pub fn get(&self, id: &ReplicaId) -> i64 {
+    pub fn get(&self, id: &PID) -> i64 {
         let inc = self.inc.get(id);
         let dec =  self.dec.get(id);
         (inc as i64) - (dec as i64)
@@ -95,12 +95,12 @@ impl Convergent for Delta {
 #[cfg(test)]
 mod test {
     use crate::crdt::convergent::{Materialize, Convergent, DeltaConvergent};
-    use crate::vtime::ReplicaId;
     use crate::crdt::convergent::pncounter::PNCounter;
+    use crate::PID;
 
-    const A: ReplicaId = 1;
-    const B: ReplicaId = 2;
-    const C: ReplicaId = 3;
+    const A: PID = 1;
+    const B: PID = 2;
+    const C: PID = 3;
 
     #[test]
     fn pncounter_identity() {

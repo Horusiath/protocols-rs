@@ -1,26 +1,27 @@
-use crate::vtime::{ReplicaId, VTime};
+use crate::vtime::VTime;
 use smallvec::alloc::collections::BTreeMap;
 use crate::crdt::convergent::Convergent;
+use crate::PID;
 
 /// Matrix clock.
 #[derive(Debug, Clone)]
-pub struct MTime(BTreeMap<ReplicaId, VTime>);
+pub struct MTime(BTreeMap<PID, VTime>);
 
 impl MTime {
 
-    pub fn get(&self, id: &ReplicaId) -> Option<&VTime> {
+    pub fn get(&self, id: &PID) -> Option<&VTime> {
         self.0.get(id)
     }
 
-    pub fn get_mut(&mut self, id: &ReplicaId) -> Option<&mut VTime> {
+    pub fn get_mut(&mut self, id: &PID) -> Option<&mut VTime> {
         self.0.get_mut(id)
     }
 
-    pub fn replace(&mut self, id: ReplicaId, time: VTime) -> Option<VTime> {
+    pub fn replace(&mut self, id: PID, time: VTime) -> Option<VTime> {
         self.0.insert(id, time)
     }
 
-    pub fn merge_vtime(&mut self, id: ReplicaId, time: &VTime) -> bool {
+    pub fn merge_vtime(&mut self, id: PID, time: &VTime) -> bool {
         let e = self.0.entry(id).or_default();
         e.merge(time)
     }

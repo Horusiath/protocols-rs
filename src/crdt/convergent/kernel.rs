@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use crate::vtime::{VTime, Dot, ReplicaId};
+use crate::vtime::{VTime, Dot};
 use smallvec::alloc::collections::BTreeSet;
 use crate::crdt::convergent::{Convergent, Materialize, DeltaConvergent};
 use std::collections::BTreeMap;
@@ -9,6 +9,7 @@ use std::iter::FusedIterator;
 use crate::dotted_version::DottedVersion;
 use std::rc::Rc;
 use std::ops::Deref;
+use crate::PID;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Kernel<T: Ord> {
@@ -20,7 +21,7 @@ pub struct Kernel<T: Ord> {
 }
 
 impl<T: Ord> Kernel<T> {
-    pub fn insert(&mut self, id: ReplicaId, value: Rc<T>) -> Dot {
+    pub fn insert(&mut self, id: PID, value: Rc<T>) -> Dot {
         let dot = self.seen.inc(id);
         let e = self.entries.entry(value.clone()).or_default();
         e.push(dot);

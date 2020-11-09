@@ -3,9 +3,9 @@ use serde::{Serialize, Deserialize};
 use crate::crdt::convergent::{Materialize, Convergent, kernel, DeltaConvergent};
 use smallvec::alloc::collections::BTreeMap;
 use std::cmp::Ordering;
-use crate::vtime::ReplicaId;
 use std::rc::Rc;
 use std::ops::{Deref, DerefMut};
+use crate::PID;
 
 type IEntry<'a, K, V> = std::collections::btree_map::Entry<'a, K, V>;
 
@@ -50,7 +50,7 @@ pub struct Entry<'a, K: Ord, V> {
 impl<'a, K: Ord, V> Entry<'a, K, V> {
     pub fn key(&self) -> &K { self.key.deref() }
 
-    pub fn or_insert(self, id: ReplicaId, default: V) -> &'a mut V {
+    pub fn or_insert(self, id: PID, default: V) -> &'a mut V {
         let key = self.key;
         match self.handle.entries.entry(key.clone()) {
             IEntry::Vacant(e) => {
@@ -63,7 +63,7 @@ impl<'a, K: Ord, V> Entry<'a, K, V> {
         }
     }
 
-    pub fn or_insert_with<F>(self, id: ReplicaId, default: F) -> &'a mut V where F: FnOnce() -> V {
+    pub fn or_insert_with<F>(self, id: PID, default: F) -> &'a mut V where F: FnOnce() -> V {
         let key = self.key;
         match self.handle.entries.entry(key.clone()) {
             IEntry::Vacant(e) => {
@@ -76,7 +76,7 @@ impl<'a, K: Ord, V> Entry<'a, K, V> {
         }
     }
 
-    pub fn or_insert_with_key<F>(self, id: ReplicaId, default: F) -> &'a mut V where F: FnOnce(&K) -> V {
+    pub fn or_insert_with_key<F>(self, id: PID, default: F) -> &'a mut V where F: FnOnce(&K) -> V {
         let key = self.key;
         match self.handle.entries.entry(key.clone()) {
             IEntry::Vacant(e) => {
@@ -90,7 +90,7 @@ impl<'a, K: Ord, V> Entry<'a, K, V> {
         }
     }
 
-    pub fn and_modify<F>(self, id: ReplicaId, f: F) -> Self where F: FnOnce(&mut V) -> () {
+    pub fn and_modify<F>(self, id: PID, f: F) -> Self where F: FnOnce(&mut V) -> () {
         let key = self.key;
         let handle = self.handle;
         if let Some(v) = handle.entries.get_mut(&key) {
@@ -105,7 +105,7 @@ impl<'a, K: Ord, V> Entry<'a, K, V> {
 
 impl<'a, K: Ord, V: Default> Entry<'a, K, V> {
 
-    pub fn or_default(self, id: ReplicaId) -> &'a mut V {
+    pub fn or_default(self, id: PID) -> &'a mut V {
         let key = self.key;
         match self.handle.entries.entry(key.clone()) {
             IEntry::Vacant(e) => {
@@ -236,14 +236,14 @@ mod test {
     use crate::crdt::convergent::lww_register::LWWRegister;
     use crate::hlc::HybridTime;
     use std::collections::{BTreeMap, BTreeSet};
-    use crate::vtime::ReplicaId;
     use crate::crdt::convergent::mv_register::MVRegister;
     use crate::crdt::convergent::or_set::ORSet;
     use futures::StreamExt;
+    use crate::PID;
 
-    const A: ReplicaId = 1;
-    const B: ReplicaId = 2;
-    const C: ReplicaId = 3;
+    const A: PID = 1;
+    const B: PID = 2;
+    const C: PID = 3;
 
     #[test]
     fn ormap_identity() {

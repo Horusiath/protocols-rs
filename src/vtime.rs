@@ -3,11 +3,11 @@ use serde::{Serialize, Deserialize};
 use std::cmp::Ordering;
 use crate::crdt::convergent::Convergent;
 use std::iter::{Peekable, FusedIterator, FromIterator};
+use crate::PID;
 
-pub type ReplicaId = u32;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialOrd, PartialEq, Ord, Eq, Hash)]
-pub struct Dot(ReplicaId, u64);
+pub struct Dot(PID, u64);
 
 /// Represents a logical timestamp of a single operation. It consists of two values: `id` which is
 /// a logical identifier of a replica, and monotonically increasing `seq_nr`, consistent
@@ -15,7 +15,7 @@ pub struct Dot(ReplicaId, u64);
 /// events in distributed systems across different actors, even in a face of concurrent operations.
 impl Dot {
     /// Replica identifer of a creator of current Dot.
-    pub fn id(&self) -> ReplicaId { self.0 }
+    pub fn pid(&self) -> PID { self.0 }
 
     /// A sequence number, which is monotonically increasing in a scope of a current replica `id`.
     pub fn seq_nr(&self) -> u64 { self.1 }
@@ -28,13 +28,13 @@ impl Dot {
 /// Vector clocks are also convergent - meaning they provide `merge` operation that is commutative,
 /// associative and idempotent.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VTime(BTreeMap<ReplicaId, u64>);
+pub struct VTime(BTreeMap<PID, u64>);
 
 impl VTime {
 
     /// Increments a partial counter of a given replica `id` by a given `delta`, returning `Dot`
     /// representing a new logical timestamp generated this way.
-    pub fn inc_by(&mut self, id: ReplicaId, delta: u64) -> Dot {
+    pub fn inc_by(&mut self, id: PID, delta: u64) -> Dot {
         if delta > 0 {
             let e = self.0.entry(id).or_default();
             let value = *e + delta;
@@ -48,16 +48,16 @@ impl VTime {
     /// Increments a partial counter of a given replica `id` by 1, returning `Dot`
     /// representing a new logical timestamp generated this way.
     #[inline]
-    pub fn inc(&mut self, id: ReplicaId) -> Dot { self.inc_by(id, 1) }
+    pub fn inc(&mut self, id: PID) -> Dot { self.inc_by(id, 1) }
 
     /// Returns a sequence number of a given replica.
-    pub fn get(&self, id: &ReplicaId) -> u64 { *self.0.get(id).unwrap_or(&0u64) }
+    pub fn get(&self, id: &PID) -> u64 { *self.0.get(id).unwrap_or(&0u64) }
 
     /// Puts a given `Dot` inside of a vector clock, updating a sequence number of a corresponding
     /// replica id in that clock if it was more recent. Returns true if current vector clock has
     /// been successfully updated.
     pub fn set(&mut self, dot: Dot) -> bool {
-        let e = self.0.entry(dot.id()).or_default();
+        let e = self.0.entry(dot.pid()).or_default();
         if dot.seq_nr() > *e {
             *e = dot.seq_nr();
             true
@@ -174,8 +174,8 @@ impl PartialOrd for VTime {
     }
 }
 
-impl FromIterator<(ReplicaId, u64)> for VTime {
-    fn from_iter<T: IntoIterator<Item=(ReplicaId, u64)>>(iter: T) -> Self {
+impl FromIterator<(PID, u64)> for VTime {
+    fn from_iter<T: IntoIterator<Item=(PID, u64)>>(iter: T) -> Self {
         let mut map = BTreeMap::new();
         for (key, value) in iter {
             map.insert(key, value);
@@ -196,7 +196,7 @@ pub type Iter<'a> =  smallvec::alloc::collections::btree_map::Iter<'a, u32, u64>
 pub struct Zip<'a>(Peekable<Iter<'a>>, Peekable<Iter<'a>>);
 
 impl<'a> Iterator for Zip<'a> {
-    type Item = (&'a ReplicaId, &'a u64, &'a u64);
+    type Item = (&'a PID, &'a u64, &'a u64);
 
     fn next(&mut self) -> Option<Self::Item> {
         let a = self.0.peek().cloned();
@@ -236,13 +236,14 @@ impl<'a> FusedIterator for Zip<'a> {}
 
 #[cfg(test)]
 mod test {
-    use crate::vtime::{VTime, ReplicaId};
+    use crate::vtime::VTime;
     use std::cmp::Ordering;
     use crate::crdt::convergent::Convergent;
+    use crate::PID;
 
-    const A: ReplicaId = 1;
-    const B: ReplicaId = 2;
-    const C: ReplicaId = 3;
+    const A: PID = 1;
+    const B: PID = 2;
+    const C: PID = 3;
 
     fn vtime(a: u64, b:u64, c: u64) -> VTime {
         let mut ts = VTime::default();
