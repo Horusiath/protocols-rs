@@ -27,3 +27,13 @@ impl Clock for SystemTime {
         SystemTime::now()
     }
 }
+
+#[async_trait::async_trait]
+pub trait Network {
+
+}
+
+#[async_trait::async_trait]
+pub trait Archive {
+    async fn get<K: AsRef<[u8]>, S>(&mut self, key: K) -> Result<Option<S>>;
+}

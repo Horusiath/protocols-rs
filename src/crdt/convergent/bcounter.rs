@@ -20,6 +20,10 @@ pub struct BCounter {
 }
 
 impl BCounter {
+
+    /// Increments a counter by a given value. This value can be negative, but in this case an
+    /// operation may fail if there's possible risk, that in result of decrement, a counter value
+    /// would turn negative.
     pub fn add(&mut self, id: PID, delta: i64) -> crate::Result<()> {
         if delta > 0 {
             Ok(self.counter.add(id, delta))
@@ -35,24 +39,30 @@ impl BCounter {
         }
     }
 
-    pub fn transfer(&mut self, from: PID, to: PID, quota: u64) -> crate::Result<()> {
-        let available = self.quota(&from);
+    /// Transfer the quota from one PID to another. In that case a `recipient` node will be able to
+    /// be decremented by possibly higher number without failure, at ta cost of reducing that
+    /// decrement capability on the `sender` node.
+    pub fn transfer(&mut self, sender: PID, recipient: PID, quota: u64) -> crate::Result<()> {
+        let available = self.quota(&sender);
         if quota < available {
-            let e = self.transfers.entry((from, to)).or_default();
+            let e = self.transfers.entry((sender, recipient)).or_default();
             *e = *e + quota;
 
             // update delta as well
             let mut delta = self.transfers_delta.take().unwrap_or_default();
-            let e = delta.entry((from, to)).or_default();
+            let e = delta.entry((sender, recipient)).or_default();
             *e = *e + quota;
             self.transfers_delta = Some(delta);
 
             Ok(())
         } else {
-            Err(anyhow::anyhow!("Cannot transfer {} from replica ({}) to ({}): maximum available quota of {} for that replica has been surpassed.", quota, from, to, available))
+            Err(anyhow::anyhow!("Cannot transfer {} from replica ({}) to ({}): maximum available quota of {} for that replica has been surpassed.", quota, sender, recipient, available))
         }
     }
 
+    /// Get current quota at a given node. Quota describes the maximum available decrement number,
+    /// that can be safely performed on that node when doing [add] operation. It's possible to
+    /// transfer quota from one node to another using [transfer] function.
     pub fn quota(&self, id: &PID) -> u64 {
         self.transfers.iter().fold(self.counter.get(id) as u64, |acc, ((src, dst), v)| {
             if src == id { acc - v }

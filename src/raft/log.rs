@@ -6,7 +6,7 @@ pub struct ReplicatedEventLog {
 }
 
 impl ReplicatedEventLog {
-    pub async fn append_bytes(&mut self, buf: &[u8]) -> Result<()> {
+    pub async fn append<B: AsRef<[u8]>>(&mut self, buf: B) -> Result<()> {
         unimplemented!()
     }
 }

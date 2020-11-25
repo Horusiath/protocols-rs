@@ -62,6 +62,12 @@ impl<'m> Materialize<'m> for GCounter {
     }
 }
 
+impl Into<u64> for GCounter {
+    fn into(self) -> u64 {
+        self.value()
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Delta(VTime);
 

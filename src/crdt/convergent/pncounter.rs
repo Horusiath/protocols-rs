@@ -75,6 +75,13 @@ impl<'m> Materialize<'m> for PNCounter {
     }
 }
 
+impl Into<i64> for PNCounter {
+    fn into(self) -> i64 {
+        self.value()
+    }
+}
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Delta(gcounter::Delta, gcounter::Delta);
 

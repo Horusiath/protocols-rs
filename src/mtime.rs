@@ -2,9 +2,10 @@ use crate::vtime::VTime;
 use smallvec::alloc::collections::BTreeMap;
 use crate::crdt::convergent::Convergent;
 use crate::PID;
+use serde::{Serialize, Deserialize};
 
 /// Matrix clock.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MTime(BTreeMap<PID, VTime>);
 
 impl MTime {
